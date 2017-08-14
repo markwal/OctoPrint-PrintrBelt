@@ -1,0 +1,4 @@
+include README.md
+recursive-include octoprint_printrbelt/templates *
+recursive-include octoprint_printrbelt/translations *
+recursive-include octoprint_printrbelt/static *
