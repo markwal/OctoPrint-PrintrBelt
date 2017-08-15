@@ -7,7 +7,7 @@ plugin_description = """An OctoPrint plugin for the PrintrBot PrintrBelt angled 
 plugin_author = "Mark Walker"
 plugin_author_email = "markwal@hotmail.com"
 plugin_url = "https://github.com/markwal/OctoPrint-PrintrBelt"
-plugin_license = "AGPLv3"
+plugin_license = "GPLv2"
 plugin_requires = []
 
 ### --------------------------------------------------------------------------------------------------------------------

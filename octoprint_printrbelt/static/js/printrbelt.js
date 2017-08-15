@@ -2,7 +2,7 @@
  * View model for OctoPrint-PrintrBelt
  *
  * Author: Mark Walker
- * License: AGPLv3
+ * License: GPLv2
  */
 $(function() {
     function PrintrbeltViewModel(parameters) {

@@ -5,7 +5,7 @@ id: printrbelt
 title: OctoPrint-PrintrBelt
 description: An OctoPrint plugin for the PrintrBot PrintrBelt angled belt 3D printer
 author: Mark Walker
-license: AGPLv3
+license: GPLv2
 
 # TODO
 date: today's date in format YYYY-MM-DD, e.g. 2015-04-21
