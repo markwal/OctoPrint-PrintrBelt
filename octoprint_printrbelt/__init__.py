@@ -1,24 +1,29 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+import os
+import os.path
+
 import octoprint.plugin
 
-class PrintrbeltPlugin(octoprint.plugin.SettingsPlugin,
-                       octoprint.plugin.AssetPlugin,
-                       octoprint.plugin.TemplatePlugin):
+class PrintrbeltPlugin(octoprint.plugin.SlicerPlugin,
+		octoprint.plugin.StartupPlugin,
+		octoprint.plugin.SettingsPlugin,
+		octoprint.plugin.AssetPlugin,
+		octoprint.plugin.TemplatePlugin):
+
+	def __init__(self, *args, **kwargs):
+		self._slicer = None
 
 	##~~ SettingsPlugin mixin
 
 	def get_settings_defaults(self):
 		return dict(
-			# put your plugin's default settings here
 		)
 
 	##~~ AssetPlugin mixin
 
 	def get_assets(self):
-		# Define your plugin's asset files to automatically include in the
-		# core UI here.
 		return dict(
 			js=["js/printrbelt.js"],
 			css=["css/printrbelt.css"],
@@ -28,9 +33,6 @@ class PrintrbeltPlugin(octoprint.plugin.SettingsPlugin,
 	##~~ Softwareupdate hook
 
 	def get_update_information(self):
-		# Define the configuration for your plugin to use with the Software Update
-		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
-		# for details.
 		return dict(
 			printrbelt=dict(
 				displayName="Printrbelt Plugin",
@@ -46,6 +48,57 @@ class PrintrbeltPlugin(octoprint.plugin.SettingsPlugin,
 				pip="https://github.com/markwal/OctoPrint-PrintrBelt/archive/{target_version}.zip"
 			)
 		)
+
+	##~~ SlicerPlugin mixin
+
+	def is_slicer_configured(self):
+		return self._slicer and self._slicer.is_slicer_configured()
+
+	def get_slicer_properties(self):
+		return dict(
+			type="printrbelt-cura",
+			name="PrintrBelt-CuraEngine",
+			same_device=True,
+			progress_report=True,
+			source_file_types=["stl"],
+			destination_extensions=["gco", "gcode", "g"]
+		)
+
+	def get_slicer_default_profile(self):
+		if not self._slicer:
+			return None
+		return self._slicer.get_slicer_default_profile()
+
+	def get_slicer_profile(self, path):
+		if not self._slicer:
+			return None
+		return self._slicer.get_slicer_profile(path)
+
+	def save_slicer_profile(self, *args, **kwargs):
+		if not self._slicer:
+			return None
+		return self._slicer.save_slicer_profile(*args, **kwargs)
+
+	def do_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None,
+	             on_progress=None, on_progress_args=None, on_progress_kwargs=None):
+		if not self._slicer:
+			return None
+		return self._slicer.do_slice(model_path, printer_profile, machinecode_path=machinecode_path, profile_path=profile_path, position=position,
+				on_progress=on_progress, on_progress_args=on_progress_args, on_progress_kwargs=on_progress_kwargs)
+
+	def cancel_slicing(self, machinecode_path):
+		if not self._slicer:
+			return None
+		return self._slicer.cancel_slicing(machinecode_path)
+
+	##~~ StartupPlugin
+
+	def on_after_startup(self, *args, **kwargs):
+		if self._settings.get(['verbose']):
+			self._logger.setLevel(logging.DEBUG)
+		self._logger.debug("on_after_startup")
+		self._slicer = self._slicing_manager.get_slicer('cura', require_configured=False)
+
 
 class GcodeShifter(octoprint.filemanager.util.LineProcessorStream):
 	def __init__(self):
