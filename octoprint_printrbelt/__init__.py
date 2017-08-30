@@ -98,7 +98,20 @@ class PrintrbeltPlugin(octoprint.plugin.SlicerPlugin,
 			self._logger.setLevel(logging.DEBUG)
 		self._logger.debug("on_after_startup")
 		self._slicer = self._slicing_manager.get_slicer('cura', require_configured=False)
-
+		profile_folder = self._slicing_manager.get_slicer_profile_path('printrbelt-cura')
+		if os.path.exists(profile_folder):
+			if os.path.islink(profile_folder):
+				return
+			if len(os.listdir(profile_folder)) > 0:
+				os.rename(profile_folder, profile_folder + "_old")
+			else:
+				os.rmdir(profile_folder)
+		if hasattr(os, 'symlink'):
+			os.symlink(self._slicing_manager.get_slicer_profile_path('cura'), profile_folder)
+		elif os.name == 'nt':
+			os.system('mklink /D "{0}" "{1}"'.format(profile_folder,self._slicing_manager.get_slicer_profile_path('cura')))
+		else:
+			self._logger.error("Unable to create symlink for slicing profile folder")
 
 class GcodeShifter(octoprint.filemanager.util.LineProcessorStream):
 	def __init__(self):
@@ -118,7 +131,7 @@ class GcodeShifter(octoprint.filemanager.util.LineProcessorStream):
 	def pass_through_line(self, line):
 		return line
 
-def shift_and_skew(path, file_object, links=None, printer_profile=None, allow_overwrite=True, *args, *kwargs):
+def shift_and_skew(path, file_object, links=None, printer_profile=None, allow_overwrite=True, *args, **kwargs):
 	if not octoprint.filemanager.valid_file_type(path, type="gcode"):
 		return file_object
 
@@ -135,7 +148,6 @@ def __plugin_load__():
 
 	global __plugin_hooks__
 	__plugin_hooks__ = {
-		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information,
-		"octoprint.filemanager.preprocessor": shift_and_skew
+		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
 	}
 
