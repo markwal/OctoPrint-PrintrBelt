@@ -1,11 +1,51 @@
 # coding=utf-8
 from __future__ import absolute_import
 
+__author__ = "Mark Walker (markwal@hotmail.com)"
+__license__ = "GNU General Public License v2 http://www.gnu.org/licenses/gpl-2.0.html"
+__copyright__ = "Copyright (C) 2017 Mark Walker"
+
+"""
+    This file is part of OctoPrint-PrintrBelt.
+
+	OctoPrint-PrintrBelt is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either version 2
+	of the License, or (at your option) any later version.
+
+	OctoPrint-PrintrBelt is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with OctoPrint-PrintrBelt.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
 import os
 import os.path
+import math
 
 import octoprint.plugin
+from octoprint.slicing import TemporaryProfile
 
+#-----------------------------------------------------------------------------
+# --islink--
+# os.path.islink always returns False on Windows in python 2
+# should be able to remove this and call os.path.islink directly if OctoPrint
+# ever upgrades to python 3
+def islink(path):
+	if os.name == 'nt':
+		import ctypes
+		FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+		return os.path.isdir(path) and (ctypes.windll.kernel32.GetFileAttributesW(unicode(path)))
+
+	return os.path.islink(path)
+
+
+#-----------------------------------------------------------------------------
+# --main plugin class--
+#
 class PrintrbeltPlugin(octoprint.plugin.SlicerPlugin,
 		octoprint.plugin.StartupPlugin,
 		octoprint.plugin.SettingsPlugin,
@@ -65,30 +105,38 @@ class PrintrbeltPlugin(octoprint.plugin.SlicerPlugin,
 		)
 
 	def get_slicer_default_profile(self):
-		if not self._slicer:
-			return None
 		return self._slicer.get_slicer_default_profile()
 
 	def get_slicer_profile(self, path):
-		if not self._slicer:
-			return None
 		return self._slicer.get_slicer_profile(path)
 
 	def save_slicer_profile(self, *args, **kwargs):
-		if not self._slicer:
-			return None
 		return self._slicer.save_slicer_profile(*args, **kwargs)
 
 	def do_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None,
 	             on_progress=None, on_progress_args=None, on_progress_kwargs=None):
-		if not self._slicer:
-			return None
-		return self._slicer.do_slice(model_path, printer_profile, machinecode_path=machinecode_path, profile_path=profile_path, position=position,
-				on_progress=on_progress, on_progress_args=on_progress_args, on_progress_kwargs=on_progress_kwargs)
+		try:
+			overrides = {
+				'stl_transformation_matrix': [[0,0,-math.cos(math.radians(35))],[0,1,0],[1+math.tan(math.radians(35)),0,1]]
+			}
+			self._logger.info("with _temporary")
+			with self._temporary_profile(profile_path, overrides=overrides) as temp_profile_path:
+				self._logger.info("do_slice")
+				return self._slicer.do_slice(model_path, printer_profile,
+						machinecode_path=machinecode_path,
+						profile_path=temp_profile_path, position=position,
+						on_progress=on_progress, on_progress_args=on_progress_args,
+						on_progress_kwargs=on_progress_kwargs)
+		except:
+			self._logger.exception("do_slice")
+
+	def _temporary_profile(self, path, overrides):
+		self._logger.info("load_profile_from_path")
+		profile = self._slicing_manager._load_profile_from_path('cura', path)
+		self._logger.info("TemporaryProfile")
+		return TemporaryProfile(self._slicer.save_slicer_profile, profile, overrides=overrides)
 
 	def cancel_slicing(self, machinecode_path):
-		if not self._slicer:
-			return None
 		return self._slicer.cancel_slicing(machinecode_path)
 
 	##~~ StartupPlugin
@@ -100,7 +148,7 @@ class PrintrbeltPlugin(octoprint.plugin.SlicerPlugin,
 		self._slicer = self._slicing_manager.get_slicer('cura', require_configured=False)
 		profile_folder = self._slicing_manager.get_slicer_profile_path('printrbelt-cura')
 		if os.path.exists(profile_folder):
-			if os.path.islink(profile_folder):
+			if islink(profile_folder):
 				return
 			if len(os.listdir(profile_folder)) > 0:
 				os.rename(profile_folder, profile_folder + "_old")
