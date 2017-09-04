@@ -1,28 +1,26 @@
 /*
  * View model for OctoPrint-PrintrBelt
+ * Copyright (c) 2017 by Mark Walker
  *
- * Author: Mark Walker
+ * Author: Mark Walker (markwal@hotmail.com)
  * License: GPLv2
  */
 $(function() {
     function PrintrbeltViewModel(parameters) {
         var self = this;
 
-        // assign the injected parameters, e.g.:
-        // self.loginStateViewModel = parameters[0];
-        // self.settingsViewModel = parameters[1];
+        self.settingsViewModel = parameters[0];
 
-        // TODO: Implement your plugin's view model here.
+        self.onBeforeBinding = function() {
+            self.settings = self.settingsViewModel.settings.plugins.printrbelt;
+            console.log(JSON.stringify(self.settings.plugins));
+        };
     }
 
     // view model class, parameters for constructor, container to bind to
     OCTOPRINT_VIEWMODELS.push([
         PrintrbeltViewModel,
-
-        // e.g. loginStateViewModel, settingsViewModel, ...
-        [ /* "loginStateViewModel", "settingsViewModel" */ ],
-
-        // e.g. #settings_plugin_printrbelt, #tab_plugin_printrbelt, ...
-        [ /* ... */ ]
+        [ "settingsViewModel" ],
+        [ "#settings_plugin_printrbelt" ]
     ]);
 });

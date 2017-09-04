@@ -29,6 +29,7 @@ import math
 import octoprint.plugin
 from octoprint.slicing import TemporaryProfile
 
+
 #-----------------------------------------------------------------------------
 # --islink--
 # os.path.islink always returns False on Windows in python 2
@@ -59,6 +60,7 @@ class PrintrbeltPlugin(octoprint.plugin.SlicerPlugin,
 
 	def get_settings_defaults(self):
 		return dict(
+			belt_angle = 35.0
 		)
 
 	##~~ AssetPlugin mixin
@@ -116,9 +118,13 @@ class PrintrbeltPlugin(octoprint.plugin.SlicerPlugin,
 	def do_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None,
 	             on_progress=None, on_progress_args=None, on_progress_kwargs=None):
 		try:
-			overrides = {
-				'stl_transformation_matrix': [[0,0,-math.cos(math.radians(35))],[0,1,0],[1+math.tan(math.radians(35)),0,1]]
-			}
+			angle = self._settings.get_float(['belt_angle'])
+			if angle != 0.0:
+				overrides = {
+					'stl_transformation_matrix': [[0,0,-math.cos(math.radians(angle))],[0,1,0],[1+math.tan(math.radians(angle)),0,1]]
+				}
+			else:
+				overrides = None
 			self._logger.info("with _temporary")
 			with self._temporary_profile(profile_path, overrides=overrides) as temp_profile_path:
 				self._logger.info("do_slice")
@@ -185,10 +191,7 @@ def shift_and_skew(path, file_object, links=None, printer_profile=None, allow_ov
 
 	return octoprint.filemanager.util.StreamWrapper(file_object.filename, GcodeShifter(file_object.stream()))
 
-# If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
-# ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
-# can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-__plugin_name__ = "Printrbelt Plugin"
+__plugin_name__ = "PrintrBelt"
 
 def __plugin_load__():
 	global __plugin_implementation__
