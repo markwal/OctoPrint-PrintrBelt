@@ -121,7 +121,12 @@ class PrintrbeltPlugin(octoprint.plugin.SlicerPlugin,
 			angle = self._settings.get_float(['belt_angle'])
 			if angle != 0.0:
 				overrides = {
-					'stl_transformation_matrix': [[0,0,-math.cos(math.radians(angle))],[0,1,0],[1+math.tan(math.radians(angle)),0,1]]
+					'stl_transformation_matrix': [[0,0,-math.cos(math.radians(angle))],[0,1,0],[1+math.tan(math.radians(angle)),0,1]],
+					'object_sink': 0.3 * math.cos(angle),
+					'skirt_line_count': 0,
+					'brim_line_count': 0,
+					'support': "none",
+					'platform_adhesion': "none"
 				}
 			else:
 				overrides = None
